@@ -2237,6 +2237,7 @@ do
             BorderColor3 = Color3.new(0, 0, 0);
             Size = UDim2.new(1, -4, 0, 13);
             ZIndex = 5;
+            ClipsDescendants = true;
             Parent = Container;
         });
         Library:AddToRegistry(SliderOuter, {
@@ -2248,6 +2249,7 @@ do
             BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
+            ClipsDescendants = true;
             Parent = SliderOuter;
         });
         Library:AddToRegistry(SliderInner, {
@@ -2297,7 +2299,10 @@ do
             Fill.BorderColor3 = Library.AccentColorDark;
         end;
 
-        function Slider:Display()
+        -- Smooth fill animation -- stores active tween so dragging can cancel it
+        Slider._FillTween = nil;
+
+        function Slider:Display(Instant)
             local Suffix = Info.Suffix or '';
             if Info.Compact then
                 DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix
@@ -2307,10 +2312,33 @@ do
                 DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix);
             end
 
-            local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
-            Fill.Size = UDim2.new(0, X, 1, 0);
+            local Scale = 0;
+            if Slider.Max ~= Slider.Min then
+                Scale = math.clamp((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1);
+            end
 
-            HideBorderRight.Visible = not (X == Slider.MaxSize or X == 0);
+            local TargetSize = UDim2.new(Scale, 0, 1, 0);
+            HideBorderRight.Visible = Scale > 0 and Scale < 1;
+
+            -- During dragging we want instant feedback; otherwise tween for smooth vibe
+            -- 0.14s Quad Out is fast but not choppy -- slightly slower than instant snap
+            if Instant then
+                if Slider._FillTween then
+                    Slider._FillTween:Cancel();
+                    Slider._FillTween = nil;
+                end
+                Fill.Size = TargetSize;
+            else
+                if Slider._FillTween then
+                    Slider._FillTween:Cancel();
+                end
+                if math.abs(Fill.Size.X.Scale - Scale) > 0.001 then
+                    Slider._FillTween = TweenService:Create(Fill, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = TargetSize});
+                    Slider._FillTween:Play();
+                else
+                    Fill.Size = TargetSize;
+                end
+            end
         end;
         function Slider:OnChanged(Func)
             Slider.Changed = Func;
@@ -2324,7 +2352,11 @@ do
 
             return tonumber(string.format('%.' .. Slider.Rounding .. 'f', Value))
         end;
-        function Slider:GetValueFromXOffset(X)
+        function Slider:GetValueFromXOffset(X, TrackSize)
+            local Max = TrackSize or Slider.MaxSize;
+            if Max and Max > 0 then
+                return Round(Library:MapValue(X, 0, Max, Slider.Min, Slider.Max));
+            end
             return Round(Library:MapValue(X, 0, Slider.MaxSize, Slider.Min, Slider.Max));
         end;
         function Slider:SetValue(Str)
@@ -2345,17 +2377,20 @@ do
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 
                 local function UpdateSlider(PosX)
-                    local gPos = Fill.AbsolutePosition.X
+                    local TrackPos = SliderInner.AbsolutePosition.X;
+                    local TrackSize = SliderInner.AbsoluteSize.X;
+                    if TrackSize <= 0 then
+                        TrackSize = Slider.MaxSize;
+                    end
                     
-                    local Diff = PosX - gPos
-                    local nX = math.clamp(Diff, 0, Slider.MaxSize)
+                    local nX = math.clamp(PosX - TrackPos, 0, TrackSize)
 
-                    local nValue = Slider:GetValueFromXOffset(nX);
+                    local nValue = Round(Library:MapValue(nX, 0, TrackSize, Slider.Min, Slider.Max));
                     local OldValue = Slider.Value;
     
                     Slider.Value = nValue;
 
-                    Slider:Display();
+                    Slider:Display(true);
 
                     if nValue ~= OldValue then
                         Library:SafeCallback(Slider.Callback, Slider.Value);
@@ -2382,7 +2417,7 @@ do
             end;
         end);
 
-        Slider:Display();
+        Slider:Display(true);
         Groupbox:AddBlank(Info.BlankSize or 6);
         Groupbox:Resize();
 
