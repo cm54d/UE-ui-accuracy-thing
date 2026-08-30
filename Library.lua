@@ -55,7 +55,7 @@ local Library = {
     KeybindMode = 'All';
 
     NotifyConfig = {
-        Alignment = 'Left';
+        Alignment = 'Center';
         BarSide   = 'Left';
         PositionX = 0;
         PositionY = 40;
