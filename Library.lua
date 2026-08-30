@@ -1668,17 +1668,10 @@ do
             TextSize = Library.FontSize;
             Text = Text;
             TextWrapped = DoesWrap or false,
-            TextXAlignment = Enum.TextXAlignment.Center;
-            TextColor3 = Color3.fromRGB(160, 160, 160);
+            TextXAlignment = Enum.TextXAlignment.Left;
             ZIndex = 5;
             Parent = Container;
         });
-        -- enforce gray centered (overrides registry default white)
-        TextLabel.TextXAlignment = Enum.TextXAlignment.Center;
-        TextLabel.TextColor3 = Color3.fromRGB(160, 160, 160);
-        if Library.RegistryMap[TextLabel] then
-            Library.RegistryMap[TextLabel].Properties.TextColor3 = nil;
-        end
         if DoesWrap then
             local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
             TextLabel.Size = UDim2.new(1, -4, 0, Y)
@@ -1711,6 +1704,27 @@ do
 
         Groupbox:AddBlank(5);
         Groupbox:Resize();
+
+        -- Standalone text-only labels (like Groupbox #2) -> gray centered. Labels with picker/toggle stay white left.
+        task.defer(function()
+            if not TextLabel or not TextLabel.Parent then return end
+            local hasAddon = false
+            for _, child in ipairs(TextLabel:GetChildren()) do
+                if child:IsA("Frame") or child:IsA("TextButton") or child:IsA("ImageLabel") then
+                    if child.ClassName ~= "UIListLayout" and child.ClassName ~= "UIPadding" then
+                        hasAddon = true
+                        break
+                    end
+                end
+            end
+            if not hasAddon then
+                TextLabel.TextXAlignment = Enum.TextXAlignment.Center;
+                TextLabel.TextColor3 = Color3.fromRGB(160, 160, 160);
+                if Library.RegistryMap[TextLabel] then
+                    Library.RegistryMap[TextLabel].Properties.TextColor3 = nil;
+                end
+            end
+        end)
 
         return Label;
     end;
