@@ -1303,15 +1303,13 @@ do
         })
 
         local ContainerLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 0, 0, 0),
-            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.new(0, 2, 0, 0),
+            Size = UDim2.new(1, -4, 1, 0),
             TextSize = Library.FontSize - 1,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            TextYAlignment = Enum.TextYAlignment.Center,
+            TextXAlignment = Enum.TextXAlignment.Left,
             ZIndex = 111,
             Parent = KeybindEntry,
         }, true)
-        ContainerLabel.TextXAlignment = Enum.TextXAlignment.Center;
 
         local Modes = Info.Modes or { 'Always', 'Toggle', 'Hold' };
         local ModeButtons = {};
