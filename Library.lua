@@ -605,6 +605,14 @@ do
 
     function Funcs:AddColorPicker(Idx, Info)
         local ToggleLabel = self.TextLabel;
+        -- revert standalone gray centered -> normal white left for labels with picker
+        if ToggleLabel then
+            ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left;
+            ToggleLabel.TextColor3 = Library.FontColor;
+            if Library.RegistryMap[ToggleLabel] then
+                Library.RegistryMap[ToggleLabel].Properties.TextColor3 = 'FontColor';
+            end
+        end
         assert(Info.Default, 'AddColorPicker: Missing default value.');
 
         local ColorPicker = {
@@ -1221,6 +1229,14 @@ do
         local ParentObj = self;
         local ToggleLabel = self.TextLabel;
         local Container = self.Container;
+        -- revert standalone gray centered -> normal white left for labels with keybind
+        if ToggleLabel then
+            ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left;
+            ToggleLabel.TextColor3 = Library.FontColor;
+            if Library.RegistryMap[ToggleLabel] then
+                Library.RegistryMap[ToggleLabel].Properties.TextColor3 = 'FontColor';
+            end
+        end
 
         assert(Info.Default, 'AddKeyPicker: Missing default value.');
 
