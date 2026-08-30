@@ -55,7 +55,7 @@ local Library = {
     KeybindMode = 'All';
 
     NotifyConfig = {
-        Alignment = 'Center';
+        Alignment = 'Left';
         BarSide   = 'Left';
         PositionX = 0;
         PositionY = 40;
@@ -1303,13 +1303,15 @@ do
         })
 
         local ContainerLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 2, 0, 0),
-            Size = UDim2.new(1, -4, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            Size = UDim2.new(1, 0, 1, 0),
             TextSize = Library.FontSize - 1,
-            TextXAlignment = Enum.TextXAlignment.Left,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
             ZIndex = 111,
             Parent = KeybindEntry,
         }, true)
+        ContainerLabel.TextXAlignment = Enum.TextXAlignment.Center;
 
         local Modes = Info.Modes or { 'Always', 'Toggle', 'Hold' };
         local ModeButtons = {};
@@ -3049,14 +3051,22 @@ do
         BackgroundColor3 = 'AccentColor';
     }, true);
     local KeybindLabel = Library:CreateLabel({
+        AnchorPoint = Vector2.new(0, 0);
         Size = UDim2.new(1, 0, 0, 20);
-        Position = UDim2.new(0, 0, 0, 2),
-        TextXAlignment = Enum.TextXAlignment.Center,
+        Position = UDim2.new(0, 0, 0, 2);
+        TextXAlignment = Enum.TextXAlignment.Center;
+        TextYAlignment = Enum.TextYAlignment.Center;
 
         Text = 'Keybinds';
         ZIndex = 104;
         Parent = KeybindInner;
     });
+    -- Force center (covers any default left set by CreateLabel/Registry)
+    KeybindLabel.TextXAlignment = Enum.TextXAlignment.Center;
+    KeybindLabel.TextYAlignment = Enum.TextYAlignment.Center;
+    KeybindLabel.Position = UDim2.new(0, 0, 0, 2);
+    KeybindLabel.Size = UDim2.new(1, 0, 0, 20);
+    KeybindLabel.AnchorPoint = Vector2.new(0, 0);
     local KeybindContainer = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Size = UDim2.new(1, 0, 1, -20);
