@@ -1639,7 +1639,7 @@ do
         Groupbox:AddBlank(1)
         if Groupbox.Resize then Groupbox:Resize() end
 
-        return unpack(Boxes)
+        return (table.unpack or unpack)(Boxes)
     end;
     function Funcs:AddLabel(Text, DoesWrap)
         local Label = {};
@@ -1652,10 +1652,17 @@ do
             TextSize = Library.FontSize;
             Text = Text;
             TextWrapped = DoesWrap or false,
-            TextXAlignment = Enum.TextXAlignment.Left;
+            TextXAlignment = Enum.TextXAlignment.Center;
+            TextColor3 = Color3.fromRGB(160, 160, 160);
             ZIndex = 5;
             Parent = Container;
         });
+        -- enforce gray centered (overrides registry default white)
+        TextLabel.TextXAlignment = Enum.TextXAlignment.Center;
+        TextLabel.TextColor3 = Color3.fromRGB(160, 160, 160);
+        if Library.RegistryMap[TextLabel] then
+            Library.RegistryMap[TextLabel].Properties.TextColor3 = nil;
+        end
         if DoesWrap then
             local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
             TextLabel.Size = UDim2.new(1, -4, 0, Y)
