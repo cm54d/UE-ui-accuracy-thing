@@ -505,26 +505,7 @@ function Library:UpdateDependencyBoxes()
 end;
 
 function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
-    -- Hardened: coerce strings, guard nil and division by zero
-    Value = tonumber(Value)
-    MinA  = tonumber(MinA)
-    MaxA  = tonumber(MaxA)
-    MinB  = tonumber(MinB)
-    MaxB  = tonumber(MaxB)
-
-    if Value == nil or MinA == nil or MaxA == nil or MinB == nil or MaxB == nil then
-        -- Return a safe fallback instead of erroring (prevents "attempt to perform arithmetic (mul) on number and nil")
-        return MinB or MaxB or MinA or Value or 0
-    end
-
-    if MaxA == MinA then
-        return MinB
-    end
-
-    local t = (Value - MinA) / (MaxA - MinA)
-    -- Optional clamp to keep fill within bounds when value is out of range (e.g. loaded config)
-    -- t = math.clamp(t, 0, 1)
-    return MinB + t * (MaxB - MinB)
+    return (1 - ((Value - MinA) / (MaxA - MinA))) * MinB + ((Value - MinA) / (MaxA - MinA)) * MaxB;
 end;
 
 function Library:GetTextBounds(Text, Font, Size, Resolution)
@@ -2221,33 +2202,16 @@ do
     end;
 
     function Funcs:AddSlider(Idx, Info)
+        assert(Info.Default, 'AddSlider: Missing default value.');
         assert(Info.Text, 'AddSlider: Missing slider text.');
-        assert(Info.Default ~= nil, 'AddSlider: Missing default value.');
-        assert(Info.Min ~= nil, 'AddSlider: Missing minimum value.');
-        assert(Info.Max ~= nil, 'AddSlider: Missing maximum value.');
-        assert(Info.Rounding ~= nil, 'AddSlider: Missing rounding value.');
-
-        -- Coerce numeric fields (handles string numbers from configs and prevents nil arithmetic in MapValue:508)
-        local defaultVal = tonumber(Info.Default) or Info.Default
-        local minVal = tonumber(Info.Min)
-        local maxVal = tonumber(Info.Max)
-        local roundingVal = tonumber(Info.Rounding)
-
-        assert(minVal ~= nil, 'AddSlider: Min must be a number.');
-        assert(maxVal ~= nil, 'AddSlider: Max must be a number.');
-        assert(roundingVal ~= nil, 'AddSlider: Rounding must be a number.');
-        assert(defaultVal ~= nil, 'AddSlider: Default must be a number.');
-        -- Also ensure Min ~= Max to avoid division by zero; clamp or warn
-        if minVal == maxVal then
-            warn(string.format('[Library:AddSlider:%s] Min == Max (%s); adjusting Max to Min+1 to avoid div/0', Idx, tostring(minVal)))
-            maxVal = minVal + 1
-        end
-
+        assert(Info.Min, 'AddSlider: Missing minimum value.');
+        assert(Info.Max, 'AddSlider: Missing maximum value.');
+        assert(Info.Rounding, 'AddSlider: Missing rounding value.');
         local Slider = {
-            Value = math.clamp(defaultVal, math.min(minVal, maxVal), math.max(minVal, maxVal));
-            Min = minVal;
-            Max = maxVal;
-            Rounding = roundingVal;
+            Value = Info.Default;
+            Min = Info.Min;
+            Max = Info.Max;
+            Rounding = Info.Rounding;
             MaxSize = 232;
             Type = 'Slider';
             Callback = Info.Callback or function(Value) end;
@@ -2335,57 +2299,33 @@ do
 
         function Slider:Display()
             local Suffix = Info.Suffix or '';
-            -- Ensure numeric values (prevents nil concatenation and MapValue nil errors)
-            local curVal = tonumber(Slider.Value) or Slider.Min or 0
-            local curMin = tonumber(Slider.Min) or 0
-            local curMax = tonumber(Slider.Max) or 100
-            local curSize = tonumber(Slider.MaxSize) or 232
-
-            -- Support custom formatting if provided (e.g. Example.lua FormatDisplayValue)
-            local customText
-            if type(Info.FormatDisplayValue) == 'function' then
-                local ok, res = pcall(Info.FormatDisplayValue, Slider, curVal)
-                if ok and res ~= nil then
-                    customText = tostring(res)
-                end
-            end
-
-            if customText then
-                DisplayLabel.Text = customText
-            elseif Info.Compact then
-                DisplayLabel.Text = Info.Text .. ': ' .. tostring(curVal) .. Suffix
+            if Info.Compact then
+                DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix
             elseif Info.HideMax then
-                DisplayLabel.Text = string.format('%s', tostring(curVal) .. Suffix)
+                DisplayLabel.Text = string.format('%s', Slider.Value .. Suffix)
             else
-                DisplayLabel.Text = string.format('%s/%s', tostring(curVal) .. Suffix, tostring(curMax) .. Suffix);
+                DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix);
             end
 
-            local X = math.ceil(Library:MapValue(curVal, curMin, curMax, 0, curSize));
-            -- Clamp X to valid range in case value was out of bounds
-            X = math.clamp(X, 0, curSize)
+            local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
             Fill.Size = UDim2.new(0, X, 1, 0);
 
-            HideBorderRight.Visible = not (X == curSize or X == 0);
+            HideBorderRight.Visible = not (X == Slider.MaxSize or X == 0);
         end;
         function Slider:OnChanged(Func)
             Slider.Changed = Func;
             Func(Slider.Value);
         end;
         local function Round(Value)
-            local r = tonumber(Slider.Rounding) or 0
-            if r == 0 then
-                return math.floor(tonumber(Value) or 0);
+            if Slider.Rounding == 0 then
+                return math.floor(Value);
             end;
 
-            return tonumber(string.format('%.' .. r .. 'f', tonumber(Value) or 0))
+
+            return tonumber(string.format('%.' .. Slider.Rounding .. 'f', Value))
         end;
         function Slider:GetValueFromXOffset(X)
-            local curMin = tonumber(Slider.Min) or 0
-            local curMax = tonumber(Slider.Max) or 100
-            local curSize = tonumber(Slider.MaxSize) or 232
-            local xNum = tonumber(X) or 0
-            xNum = math.clamp(xNum, 0, curSize)
-            return Round(Library:MapValue(xNum, 0, curSize, curMin, curMax));
+            return Round(Library:MapValue(X, 0, Slider.MaxSize, Slider.Min, Slider.Max));
         end;
         function Slider:SetValue(Str)
             local Num = tonumber(Str);
@@ -2393,9 +2333,7 @@ do
                 return;
             end;
 
-            local curMin = tonumber(Slider.Min) or 0
-            local curMax = tonumber(Slider.Max) or 100
-            Num = math.clamp(Num, math.min(curMin, curMax), math.max(curMin, curMax));
+            Num = math.clamp(Num, Slider.Min, Slider.Max);
 
             Slider.Value = Num;
             Slider:Display();
@@ -2408,10 +2346,9 @@ do
                 
                 local function UpdateSlider(PosX)
                     local gPos = Fill.AbsolutePosition.X
-                    local curSize = tonumber(Slider.MaxSize) or 232
                     
                     local Diff = PosX - gPos
-                    local nX = math.clamp(Diff, 0, curSize)
+                    local nX = math.clamp(Diff, 0, Slider.MaxSize)
 
                     local nValue = Slider:GetValueFromXOffset(nX);
                     local OldValue = Slider.Value;
@@ -4076,4 +4013,3 @@ end
 
 getgenv().Library = Library
 return Library
-.
