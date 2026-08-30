@@ -3049,22 +3049,14 @@ do
         BackgroundColor3 = 'AccentColor';
     }, true);
     local KeybindLabel = Library:CreateLabel({
-        AnchorPoint = Vector2.new(0, 0);
         Size = UDim2.new(1, 0, 0, 20);
         Position = UDim2.new(0, 0, 0, 2);
         TextXAlignment = Enum.TextXAlignment.Center;
-        TextYAlignment = Enum.TextYAlignment.Center;
 
         Text = 'Keybinds';
         ZIndex = 104;
         Parent = KeybindInner;
     });
-    -- Force center (covers any default left set by CreateLabel/Registry)
-    KeybindLabel.TextXAlignment = Enum.TextXAlignment.Center;
-    KeybindLabel.TextYAlignment = Enum.TextYAlignment.Center;
-    KeybindLabel.Position = UDim2.new(0, 0, 0, 2);
-    KeybindLabel.Size = UDim2.new(1, 0, 0, 20);
-    KeybindLabel.AnchorPoint = Vector2.new(0, 0);
     local KeybindContainer = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Size = UDim2.new(1, 0, 1, -20);
